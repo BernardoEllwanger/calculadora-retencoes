@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora IRRF + ISSQN</title>
+    <meta name="description" content="Calculadora de retenção de IRRF e ISSQN para autônomos (RPA)">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #1f2937;
+            --primary-dark: #111827;
+            --primary-light: #374151;
+            --accent: #f59e0b;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: #fff;
+            padding: 28px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .header .subtitle {
+            font-size: 0.88rem;
+            opacity: 0.8;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 640px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 20px;
+            flex: 1;
+        }
+
+        .calc-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            box-shadow: var(--shadow-md);
+        }
+        .calc-card h2 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper .prefix {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            pointer-events: none;
+        }
+        .money-input {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            font-family: inherit;
+            font-weight: 600;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .money-input:focus {
+            border-color: var(--primary-light);
+        }
+        .money-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .btn-calcular {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-calcular:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Resultado */
+        .resultado {
+            display: none;
+            margin-top: 24px;
+        }
+        .resultado.visivel {
+            display: block;
+        }
+
+        .resultado-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .resultado-header {
+            background: #f9fafb;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .resultado-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .resultado-row:last-child {
+            border-bottom: none;
+        }
+        .resultado-row .label {
+            font-size: 0.92rem;
+            color: var(--text);
+        }
+        .resultado-row .label .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .tag-aliquota {
+            background: rgba(31, 41, 55, 0.08);
+            color: var(--primary);
+        }
+        .tag-isento {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .tag-redutor {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .resultado-row .valor {
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+        }
+        .valor-negativo {
+            color: var(--danger);
+        }
+        .valor-zero {
+            color: var(--success);
+        }
+        .row-total {
+            background: #f9fafb;
+        }
+        .row-total .label {
+            font-weight: 700;
+        }
+        .row-total .valor {
+            font-size: 1.15rem;
+            color: var(--success);
+        }
+
+        .btn-limpar {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.92rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-limpar:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Info */
+        .info-section {
+            margin-top: 24px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        .info-section h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .info-section li {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            padding: 3px 0;
+            padding-left: 14px;
+            position: relative;
+        }
+        .info-section li::before {
+            content: '\2022';
+            position: absolute;
+            left: 0;
+            color: var(--primary-light);
+        }
+
+        .footer {
+            background: #1f2937;
+            color: #9ca3af;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82rem;
+            margin-top: auto;
+        }
+        .footer a {
+            color: #d1d5db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer a:hover {
+            color: #fff;
+        }
+        .footer a svg {
+            width: 14px;
+            height: 14px;
+            vertical-align: -2px;
+            margin-left: 4px;
+            fill: currentColor;
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 20px 16px;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .container {
+                padding: 20px 16px;
+            }
+            .calc-card {
+                padding: 20px 16px;
+            }
+            .resultado-row {
+                padding: 12px 14px;
+            }
+        }
+
+        @media print {
+            .header, .footer, .btn-calcular, .btn-limpar, .info-section {
+                display: none;
+            }
+            body { background: #fff; }
+            .calc-card { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Calculadora IRRF + ISSQN</h1>
+        <p class="subtitle">Reten&ccedil;&otilde;es para aut&ocirc;nomos (RPA)</p>
+    </header>
+
+    <div class="container">
+        <div class="calc-card">
+            <h2>Informe o valor bruto da nota</h2>
+
+            <div class="form-group">
+                <label for="valorBruto">Valor Bruto (R$)</label>
+                <div class="input-wrapper">
+                    <span class="prefix">R$</span>
+                    <input type="text" id="valorBruto" class="money-input"
+                           placeholder="0,00" inputmode="decimal" autocomplete="off">
+                </div>
+            </div>
+
+            <button class="btn-calcular" id="btnCalcular">Calcular</button>
+
+            <div class="resultado" id="resultado">
+                <div class="resultado-card">
+                    <div class="resultado-header">Detalhamento</div>
+                    <div class="resultado-row">
+                        <span class="label">Valor Bruto (Base de C&aacute;lculo)</span>
+                        <span class="valor" id="resValorBruto">R$ 0,00</span>
+                    </div>
+                    <div class="resultado-row">
+                        <span class="label" id="resIrrfLabel">IRRF Retido</span>
+                        <span class="valor" id="resIrrf">R$ 0,00</span>
+                    </div>
+                    <div class="resultado-row">
+                        <span class="label">ISSQN Retido <span class="tag tag-aliquota">4%</span></span>
+                        <span class="valor valor-negativo" id="resIssqn">- R$ 0,00</span>
+                    </div>
+                    <div class="resultado-row row-total">
+                        <span class="label">Valor L&iacute;quido a Pagar</span>
+                        <span class="valor" id="resLiquido">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <button class="btn-limpar" id="btnLimpar">Calcular novamente</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Regras aplicadas</h3>
+            <ul>
+                <li>ISSQN: al&iacute;quota fixa de 4% sobre o valor bruto</li>
+                <li>IRRF: isen&ccedil;&atilde;o para valores at&eacute; R$ 5.000,00</li>
+                <li>IRRF: al&iacute;quota de 27,5% com parcela a deduzir de R$ 908,73</li>
+                <li>Redutor progressivo conforme MP 1.206/2024</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Tabela IRRF 2025 &middot; <a href="https://www.linkedin.com/in/bernardo-ellwanger" target="_blank" rel="noopener noreferrer">Bernardo Ellwanger<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a></p>
+    </footer>
+
+    <script>
+        // Mascara de moeda BRL
+        var input = document.getElementById('valorBruto');
+
+        input.addEventListener('input', function() {
+            var valor = this.value.replace(/\D/g, '');
+            if (!valor) {
+                this.value = '';
+                return;
+            }
+
+            var numero = parseInt(valor, 10);
+            var formatado = (numero / 100).toFixed(2);
+
+            // Separar partes
+            var partes = formatado.split('.');
+            var inteira = partes[0];
+            var decimal = partes[1];
+
+            // Separador de milhar
+            inteira = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+            this.value = inteira + ',' + decimal;
+        });
+
+        // Converter BRL string para float
+        function brlParaFloat(str) {
+            if (!str) return 0;
+            var limpo = str.replace(/\./g, '').replace(',', '.');
+            return parseFloat(limpo) || 0;
+        }
+
+        // Formatar float para BRL
+        function formatarBrl(valor) {
+            return valor.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Calculo
+        function calcular(valorBruto) {
+            // ISSQN: 4%
+            var issqn = valorBruto * 0.04;
+
+            var baseIR = valorBruto;
+            var irrfFinal = 0;
+            var aliquotaIR = 0;
+            var redutorExtra = 0;
+            var aplicouReductor = false;
+            var mensagemIsencao = '';
+
+            if (baseIR <= 5000.00) {
+                irrfFinal = 0;
+                aliquotaIR = 0;
+                mensagemIsencao = 'Isento (faixa at\u00e9 R$ 5.000,00)';
+            } else {
+                aliquotaIR = 27.5;
+                var parcelaDeduzir = 908.73;
+                var irrfPadrao = (baseIR * (aliquotaIR / 100)) - parcelaDeduzir;
+
+                // Redutor nova lei
+                var calculoReductor = 978.62 - (0.133145 * baseIR);
+                if (calculoReductor > 0) {
+                    redutorExtra = calculoReductor;
+                    irrfFinal = irrfPadrao - redutorExtra;
+                    aplicouReductor = true;
+                } else {
+                    irrfFinal = irrfPadrao;
+                }
+
+                if (irrfFinal < 0) irrfFinal = 0;
+            }
+
+            var valorLiquido = valorBruto - issqn - irrfFinal;
+
+            return {
+                valorBruto: valorBruto,
+                issqn: issqn,
+                irrfFinal: irrfFinal,
+                aliquotaIR: aliquotaIR,
+                redutorExtra: redutorExtra,
+                aplicouReductor: aplicouReductor,
+                mensagemIsencao: mensagemIsencao,
+                valorLiquido: valorLiquido
+            };
+        }
+
+        function renderizarResultado(r) {
+            // Valor bruto
+            document.getElementById('resValorBruto').textContent = 'R$ ' + formatarBrl(r.valorBruto);
+
+            // IRRF
+            var irrfLabel = document.getElementById('resIrrfLabel');
+            var irrfValor = document.getElementById('resIrrf');
+
+            var tagsHtml = '';
+            if (r.mensagemIsencao) {
+                tagsHtml = ' <span class="tag tag-isento">Isento</span>';
+            } else {
+                tagsHtml = ' <span class="tag tag-aliquota">' + r.aliquotaIR + '%</span>';
+                if (r.aplicouReductor) {
+                    tagsHtml += ' <span class="tag tag-redutor">Redutor: -R$ ' + formatarBrl(r.redutorExtra) + '</span>';
+                }
+            }
+            irrfLabel.innerHTML = 'IRRF Retido' + tagsHtml;
+
+            if (r.irrfFinal > 0) {
+                irrfValor.textContent = '- R$ ' + formatarBrl(r.irrfFinal);
+                irrfValor.className = 'valor valor-negativo';
+            } else {
+                irrfValor.textContent = 'R$ 0,00';
+                irrfValor.className = 'valor valor-zero';
+            }
+
+            // ISSQN
+            document.getElementById('resIssqn').textContent = '- R$ ' + formatarBrl(r.issqn);
+
+            // Liquido
+            document.getElementById('resLiquido').textContent = 'R$ ' + formatarBrl(r.valorLiquido);
+
+            // Mostrar
+            document.getElementById('resultado').classList.add('visivel');
+        }
+
+        // Botao calcular
+        document.getElementById('btnCalcular').addEventListener('click', function() {
+            var valor = brlParaFloat(input.value);
+            if (valor <= 0) {
+                input.focus();
+                return;
+            }
+            var resultado = calcular(valor);
+            renderizarResultado(resultado);
+        });
+
+        // Enter para calcular
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btnCalcular').click();
+            }
+        });
+
+        // Limpar
+        document.getElementById('btnLimpar').addEventListener('click', function() {
+            input.value = '';
+            document.getElementById('resultado').classList.remove('visivel');
+            input.focus();
+        });
+    </script>
+</body>
+</html>
